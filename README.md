@@ -1,20 +1,19 @@
-# Terraform on Azure Reference Architecture
+# Tailored for myself to deploy in a complete cycle
 
-This repository helps you to implement Infrastructure as Code best practices using Terraform and Microsoft Azure.
+# Deploy a two-tier refence application in 3 environment using Azure DevOps Pipeline and Terraform code
 
-If you are not familiar with Infrastructure as Code (IaC), read [this page](https://docs.microsoft.com/en-us/azure/devops/learn/what-is-infrastructure-as-code) first.
+ 
 
-***Note: this "reference architecture" is still a work in progress. If you have any question or feedback, feel free to open an issue to start the discussion :)***
+   ***To solve: the credentials of Azure login info***
+
 
 ## Overview of the architecture
 
-*Note: in this example we don't pay attention as the application that is deployed itself as the focus is on deploying the infrastructure.*
+*Note: the focus is on deploying the infrastructure.*
 
-This repository guides you in deploying the following architecture on Microsoft Azure, using [Terraform](https://www.terraform.io/intro/index.html).
+![Architecture Diagram](assets/architecture.jpg)
 
-![Sample Architecture](assets/architecture.jpg)
-
-There are 3 environments (Dev, QA and Prod). Each of the environment contains:
+There are 3 environments (Dev, UAT and Prod). Each of the environment contains:
 - An [Azure Kubernetes Service](https://docs.microsoft.com/en-us/azure/aks/intro-kubernetes) cluster, in its own virtual network
 - A backend virtual network, that contains one or more virtual machines that act as bastion / jump boxes
 - An [Azure Database for MySQL](https://docs.microsoft.com/en-us/azure/mysql/overview) service instance with [virtual network service endpoint](https://docs.microsoft.com/en-us/azure/mysql/concepts-data-access-and-security-vnet) so it can be reached by jumbbox and services running in AKS (Backend virtual network and AKS virtual network are peered together)
