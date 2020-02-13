@@ -1,10 +1,16 @@
 # Common Module
 
-This modules is responsible for deploying the common stuff required for the reference archicture for Terraform on Azure.The module is developed in its own repository [here](https://github.com/jcorioland/terraform-azure-ref-common-module).
+This modules is responsible for deploying the common resources required for the reference archicture for Terraform on Azure.
+- Resource Group (name speficied)
+- Container Registry (name speficied)
+- Key Vault (name speficied)
 
 
-## Usage
-find the tenant_id:
+The module is saved in its own repository [here](https://github.com/jeffan18/terraform-azure-ref-common-module).
+
+
+# Usage
+## find the tenant_id:
 ```bash
 az account list
 ```
