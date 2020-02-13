@@ -1,4 +1,4 @@
-# Deploy a two-tier refence application in 3 environment using Azure DevOps Pipeline and Terraform code
+# Deploy a two-tier reference application in 3 environments using Azure DevOps Pipeline and Terraform code
  
 
 ## Architecture Design
@@ -9,7 +9,7 @@ Environments
   There are 3 environments (Dev, UAT and Prod). 
 
 Infrastrucuture Components:
-  Each of the environment contains 2 tiers
+  Each of the environment contains 2 tiers: App and DB.
   - An [Azure Kubernetes Service](https://docs.microsoft.com/en-us/azure/aks/intro-kubernetes) cluster, in its own virtual network
   - A backend virtual network, that contains one or more virtual machines that act as bastion / jump boxes
   - An [Azure Database for MySQL](https://docs.microsoft.com/en-us/azure/mysql/overview) service instance 
@@ -158,9 +158,6 @@ This reference architecture uses different Terraform module to deploy different 
 
 It contains all the common resources like ACR, KeyVault...
 This module is defined in its own [GitHub repository](https://github.com/jcorioland/terraform-azure-ref-common-module).
-
-[![Build Status](https://dev.azure.com/jcorioland-msft/terraform-azure-reference/_apis/build/status/jcorioland.terraform-azure-ref-common-module?branchName=master)](https://dev.azure.com/jcorioland-msft/terraform-azure-reference/_build/latest?definitionId=33&branchName=master)
-
 More documentation [here](tf/common/README.md).
 
 ### Core Environment Module
@@ -172,7 +169,4 @@ More documentation [here](tf/core/README.md).
 
 It contains everything needed to deploy an Azure Kubernetes Service cluster inside a given environment.
 It is defined in its own [GitHub repository](https://github.com/jcorioland/terraform-azure-ref-aks-module).
-
-[![Build Status](https://dev.azure.com/jcorioland-msft/terraform-azure-reference/_apis/build/status/jcorioland.terraform-azure-ref-aks-module?branchName=master)](https://dev.azure.com/jcorioland-msft/terraform-azure-reference/_build/latest?definitionId=32&branchName=master)
-
 More documentation [here](tf/aks/README.md).
