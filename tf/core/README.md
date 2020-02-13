@@ -6,7 +6,14 @@ This module is responsible for the deployment for all the core components and re
 - The virtual network and subnets
 - The peerings
 
-# Usage
+# Note
+init.sh Scripts need to be run to assign the value for the variables: 
+- location
+- environment
+
+init.sh scripts will invoke scipts "../../init-env-vars.sh" to load the terraform global variables (which include the terraform/Azure credentials)
+
+## Usage
 
 ```bash
 ENVIRONMENT_NAME="DEV"
