@@ -9,8 +9,8 @@ This module is responsible for the deployment for all the core components and re
 # Usage
 
 ```bash
-ENVIRONMENT_NAME="development"
-LOCATION="francecentral"
+ENVIRONMENT_NAME="DEV"
+LOCATION="useast"
 
 # init terraform and backend storage
 ./init.sh $ENVIRONMENT_NAME
