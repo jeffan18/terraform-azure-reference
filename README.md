@@ -1,55 +1,60 @@
-# Tailored for myself to deploy in a complete cycle
-
 # Deploy a two-tier refence application in 3 environment using Azure DevOps Pipeline and Terraform code
-
  
 
-   ***To solve: the credentials of Azure login info***
-
-
-## Overview of the architecture
-
-*Note: the focus is on deploying the infrastructure.*
+## Architecture Design
 
 ![Architecture Diagram](assets/architecture.jpg)
 
-There are 3 environments (Dev, UAT and Prod). Each of the environment contains:
-- An [Azure Kubernetes Service](https://docs.microsoft.com/en-us/azure/aks/intro-kubernetes) cluster, in its own virtual network
-- A backend virtual network, that contains one or more virtual machines that act as bastion / jump boxes
-- An [Azure Database for MySQL](https://docs.microsoft.com/en-us/azure/mysql/overview) service instance with [virtual network service endpoint](https://docs.microsoft.com/en-us/azure/mysql/concepts-data-access-and-security-vnet) so it can be reached by jumbbox and services running in AKS (Backend virtual network and AKS virtual network are peered together)
+Environments
+  There are 3 environments (Dev, UAT and Prod). 
 
-There are also common services used here:
+Infrastrucuture Components:
+  Each of the environment contains 2 tiers
+  - An [Azure Kubernetes Service](https://docs.microsoft.com/en-us/azure/aks/intro-kubernetes) cluster, in its own virtual network
+  - A backend virtual network, that contains one or more virtual machines that act as bastion / jump boxes
+  - An [Azure Database for MySQL](https://docs.microsoft.com/en-us/azure/mysql/overview) service instance 
+  - MYSQL is configured with [virtual network service endpoint](https://docs.microsoft.com/en-us/azure/mysql/concepts-data-access-and-security-vnet) so it can be reached by jumbbox and services running in AKS (Backend virtual network and AKS virtual network are peered together)
+
+Common services for all environments:
 - [Azure Container Registry](https://docs.microsoft.com/en-us/azure/container-registry/), to store the Docker image
 - [Azure KeyVault](https://docs.microsoft.com/en-us/azure/key-vault/), to store the application secrets securely
 - [Azure Firewall](https://docs.microsoft.com/en-us/azure/firewall/), to protect the application
 
-We will also use [Azure Monitor](https://docs.microsoft.com/en-us/azure/azure-monitor/) with logs analytics to monitor all this infrastructure (and potentially the application).
+- Monitoring:
+We use [Azure Monitor](https://docs.microsoft.com/en-us/azure/azure-monitor/) with logs analytics to monitor all this infrastructure (and potentially the application).
 
-Finally, all the infrastructure will be describe using Terraform HCL manifests stored in GitHub (this repository) and we will use [Azure DevOps Pipelines](https://docs.microsoft.com/en-us/azure/devops/pipelines/get-started/overview?view=azure-devops) to deploy all the infrastructure.
+## DevOps Practice
 
-*Note: technically speaking, the pipeline that automates Terraform deployment can be hosted in any other CI/CD tool, like Jenkins, for example.*
+*Note: the focus is on deploying the infrastructure.*
+
+- IaC: All the infrastructure components are defined using Terraform HCL manifests 
+- Version Control: Terraform codes and related scripts are stored in GitHub (this repository) 
+- CI/CD pipeline: use [Azure DevOps Pipelines](https://docs.microsoft.com/en-us/azure/devops/pipelines/get-started/overview?view=azure-devops) to deploy all the infrastructure.
+  *Note: The pipeline can be hosted in any other CI/CD tool, like Jenkins*
 
 As you can see, some parts of the infrastructure are specific for each environment, some other will be shared. This will help to illustrate how to handle deployments of different resources having different lifecycle.
 
-## Prerequisites
+## Prerequisites before deployment
 
-In order to follow this documentation and try it by yourself, you need:
+- A Microsoft Azure account, with subscriptions.
+- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
+- [Terraform executable](https://learn.hashicorp.com/terraform/getting-started/install.html) on a local machine.
+- GitHub account (Fork this repository)
+- An Azure DevOps organization. Setup Azure DevOps[instructions](https://azure.microsoft.com/en-us/services/devops/?nav=min)
 
-- A Microsoft Azure account. You can create a free trial account [here](https://azure.microsoft.com/en-us/free/).
-- [Install Terraform](https://learn.hashicorp.com/terraform/getting-started/install.html) on your machine, if you want to experiment the scripts locally
-- Fork this repository into your GitHub account
-- An Azure DevOps organization. You can get started for free [here](https://azure.microsoft.com/en-us/services/devops/?nav=min) if you do not already use Azure DevOps
-- Install the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
+   ***To solve: the credentials of Azure login info***
 
-If you are not familiar with Terraform yet, we strongly recommend that you follow the Terraform on Azure getting started guide on [this page](https://learn.hashicorp.com/terraform/azure/intro_az).
+### Terraform State
 
-## Terraform State
+- Terraform needs to maintain state between the deployments, for the infrastructure components that need be added or removed.
+- Storing Terraform state remotely is a best practice to make sure you don't loose it across your different execution environment (from your machine to any CI/CD agent). 
+- The best pratice is to use Azure Storage as a remote backend for Terraform state.
 
-Terraform needs to maintain state between the deployments, to make sure to what needs to be added or removed.
+### Pre-works - create common RG, Backend Storage, and Key Vault
+from Azure CLI:
+ - az login
 
-Storing Terraform state remotely is a best practice to make sure you don't loose it across your different execution environment (from your machine to any CI/CD agent). It is possible to use Azure Storage as a remote backend for Terraform state.
-
-To initialize the the Azure Storage backend, you have to execute the [scripts/init-remote-state-backend.sh](scripts/init-remote-state-backend.sh):
+  - execute scripts: [scripts/init-remote-state-backend.sh](scripts/init-remote-state-backend.sh):
 
 ```bash
 #!/bin/bash
@@ -104,14 +109,14 @@ echo "terraform init -backend-config=\"storage_account_name=$TF_STATE_STORAGE_AC
 ```
 
 This script is responsible for:
-- Creating an Azure Resource Group
-- Creating an Azure Storage Account
+- Creating a common Azure Resource Group (shared for all environments)
+- Creating an Azure Storage Account in this common RG
 - Retrieving the Storage Account access key
 - Creating a container in the Storage Account (where the Terraform state will be stored)
-- Creating an Azure Key Vault
+- Creating an Azure Key Vault in the common RG
 - Storing the the Storage Account access key into a Key Vault secret named `tfstate-storage-key`
 
-Once completed, the script will print a the `terraform init` command line that you will use later to init Terraform to use this backend, like:
+Once completed, the script will print the `terraform init` command line that can be used later to init Terraform to use this backend, like:
 
 ```bash
 terraform init -backend-config="storage_account_name=$STORAGE_ACCOUNT_NAME" -backend-config="container_name=$CONTAINER_NAME" -backend-config="access_key=$(az keyvault secret show --name tfstate-storage-key --vault-name $KEYVAULT_NAME --query value -o tsv)" -backend-config="key=terraform-ref-architecture-tfstate"
@@ -119,13 +124,12 @@ terraform init -backend-config="storage_account_name=$STORAGE_ACCOUNT_NAME" -bac
 
 *Note: If you are working with multiple cloud providers, you may not want to spare storage state into each provider. For this reason, you may want to look the [Terraform Cloud remote state management](https://www.hashicorp.com/blog/introducing-terraform-cloud-remote-state-management) that has been introduced by HashiCorp.*
 
+
 ## Terraform modules
 
 ### What are Terraform modules?
 
-[Terraform modules](https://www.terraform.io/docs/modules/index.html) are used to group together a set of resources that have the same lifecycle. It is not mandatory to use modules, but in some case it might be useful.
-
-Like all mechanisms that allow to mutualize/factorize code, modules can also be dangerous: you don't want to have a big module that contains everything that you need to deploy and make all the resources strongly coupled together. This could lead to a monolith that will be really hard to maintain and to deploy.
+[Terraform modules](https://www.terraform.io/docs/modules/index.html) are used to group together a set of resources that have the same lifecycle. Modules is a convenient way for this deployment which has 3 environments and they have similar services and components in the design.
 
 Here are some questions that you can ask yourself for before writing a module:
 - Do have all the resources involved the same lifecycle?
